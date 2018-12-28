@@ -1438,181 +1438,184 @@ function searchFilters(
             return false;
           }
 
-          if (item.id === "6917529085842660007") {
+          //if (item.id === "6917529085842660007") {
 
-            initDupePerkMaps();
+          initDupePerkMaps();
 
-            const combos = _armorCombos.items[item.id];
-            const armorItems = _.keys(_armorCombos.items);
-            const wantedCombos = _.filter(combos, (combo) => {
-              // console.log("combos", combos, _.intersection(combos, unwantedPerks).length );
-              // console.log("unwantedPerks", unwantedPerks);
-              const fcPerkTag: string = combo[0].split(" ")[0];
-              const scWeapon = combo[1].split(" ")[0];
-              if (presets.uniqueWeaponSlots.indexOf(fcPerkTag) > -1 && presets.uniqueWeaponSlots.indexOf(scWeapon) > -1 &&
-                presets.uniqueWeaponSlots.indexOf(fcPerkTag) !== presets.uniqueWeaponSlots.indexOf(scWeapon)) {
-                // console.log("combo", combo, id);
-                return false;
-              } else if (_.indexOf(genericTagNames, fcPerkTag) > -1) {
-                const fullGenericName = _armorCombos.genericFullNames[fcPerkTag];
-                const specificCombos = presets.genericTypeNames[fullGenericName];
-                const specificComboCounts = _.map(specificCombos, (specificGunName) => {
-                  const fcPerkName = specificGunName + combo[0].replace(fullGenericName, "").replace(fcPerkTag, "");
-                  const wantedCombo = [fcPerkName, combo[1]];
-                  // console.log("wantedCombo", wantedCombo);
-                  const otherArmor = _.filter(armorItems, (otherId) => {
+          const combos = _armorCombos.items[item.id];
+          const armorItems = _.keys(_armorCombos.items);
+          const wantedCombos = _.filter(combos, (combo) => {
+            // console.log("combos", combos, _.intersection(combos, unwantedPerks).length );
+            // console.log("unwantedPerks", unwantedPerks);
+            const fcPerkTag: string = combo[0].split(" ")[0];
+            const scWeapon = combo[1].split(" ")[0];
+            if (presets.uniqueWeaponSlots.indexOf(fcPerkTag) > -1 && presets.uniqueWeaponSlots.indexOf(scWeapon) > -1 &&
+              presets.uniqueWeaponSlots.indexOf(fcPerkTag) !== presets.uniqueWeaponSlots.indexOf(scWeapon)) {
+              // console.log("combo", combo, id);
+              return false;
+            } else if (_.indexOf(genericTagNames, fcPerkTag) > -1) {
+              const fullGenericName = _armorCombos.genericFullNames[fcPerkTag];
+              const specificCombos = presets.genericTypeNames[fullGenericName];
+              const specificComboCounts = _.map(specificCombos, (specificGunName) => {
+                const fcPerkName = specificGunName + combo[0].replace(fullGenericName, "").replace(fcPerkTag, "");
+                const wantedCombo = [fcPerkName, combo[1]];
+                // console.log("wantedCombo", wantedCombo);
+                const otherArmor = _.filter(armorItems, (otherId) => {
 
-                    const otherTier = _.reduce(stores, (memo, store) => {
-                      _.each(store.items, (item) => {
-                        if (item.id === otherId) {
-                          memo = item.tier;
-                        }
-                      });
-                      return memo;
-                    }, "");
+                  const otherTier = _.reduce(stores, (memo, store) => {
+                    _.each(store.items, (item) => {
+                      if (item.id === otherId) {
+                        memo = item.tier;
+                      }
+                    });
+                    return memo;
+                  }, "");
 
-                    let hasMatchingParks = false;
-                    if (otherId != item.id && otherTier == "Legendary") {
-                      const otherCombos = _armorCombos.items[otherId];
-                      // loop through the other combos and see if it has a combination that matches wanted combo
-                      hasMatchingParks = _.filter(otherCombos, (otherCombo) => {
-                        return _.intersection(wantedCombo, otherCombo).length === 2 || _.intersection(["Enhanced " + wantedCombo[0], wantedCombo[1]], otherCombo).length === 2; //has both perks in the wantedCombo
-                      }).length > 0;
-                    }
-                    return hasMatchingParks;
-                  });
-
-                  // console.log("searching for combo", wantedCombo, otherArmor.length);
-                  return otherArmor.length;
+                  let hasMatchingParks = false;
+                  if (otherId != item.id && otherTier == "Legendary") {
+                    const otherCombos = _armorCombos.items[otherId];
+                    // loop through the other combos and see if it has a combination that matches wanted combo
+                    hasMatchingParks = _.filter(otherCombos, (otherCombo) => {
+                      return _.intersection(wantedCombo, otherCombo).length === 2 || _.intersection(["Enhanced " + wantedCombo[0], wantedCombo[1]], otherCombo).length === 2; //has both perks in the wantedCombo
+                    }).length > 0;
+                  }
+                  return hasMatchingParks;
                 });
-                // console.log("generic combo", combo, specificComboCounts);
-                // if there is no item with a zero then all specific slots that can fill the generic are available
-                if (specificComboCounts.indexOf(0) === -1) {
-                  // console.log("generic combo-2", combo, specificComboCounts);
-                  return false;
-                }
-              }
 
-              // if the combo is found in the array of existing unwanted perks i don't want it
-              const matchesUnwanted = _.indexOf(unwantedCombos, combo.join(",")) > -1;
-
-              if (matchesUnwanted) {
+                // console.log("searching for combo", wantedCombo, otherArmor.length);
+                return otherArmor.length;
+              });
+              // console.log("generic combo", combo, specificComboCounts);
+              // if there is no item with a zero then all specific slots that can fill the generic are available
+              if (specificComboCounts.indexOf(0) === -1) {
+                // console.log("generic combo-2", combo, specificComboCounts);
                 return false;
               }
+            }
 
-              const fcPerkCount = _.filter(armorItems, (otherItemId) => {
-                const stdPerks = _.flatten(_armorCombos[otherItemId]);
+            // if the combo is found in the array of existing unwanted perks i don't want it
+            const matchesUnwanted = _.indexOf(unwantedCombos, combo.join(",")) > -1;
 
-                return stdPerks.indexOf(combo[0]) > -1 && presets.unwantedPerks.indexOf(combo[0]) === -1;
-              }).length;
+            if (matchesUnwanted) {
+              return false;
+            }
 
-              const scPerkCount = _.filter(armorItems, (otherItemId) => {
-                const stdPerks = _.flatten(_armorCombos[otherItemId]);
+            const fcPerkCount = _.filter(armorItems, (otherItemId) => {
+              const stdPerks = _.flatten(_armorCombos.items[otherItemId]);
 
-                return stdPerks.indexOf(combo[1]) > -1 && presets.unwantedPerks.indexOf(combo[1]) === -1;
-              }).length;
+              return stdPerks.indexOf(combo[0]) > -1 && presets.unwantedPerks.indexOf(combo[0]) === -1;
+            }).length;
 
-              // if the perk is unique and not found in any other piece of armor don't delete it
-              if (fcPerkCount === 1 || scPerkCount === 1) {
-                return true;
+            const scPerkCount = _.filter(armorItems, (otherItemId) => {
+              const stdPerks = _.flatten(_armorCombos.items[otherItemId]);
+
+              return stdPerks.indexOf(combo[1]) > -1 && presets.unwantedPerks.indexOf(combo[1]) === -1;
+            }).length;
+
+            /*if (item.id == "6917529086013942993") {
+              console.log("fcPerkCount", fcPerkCount);
+            }*/
+            // if the perk is unique and not found in any other piece of armor don't delete it
+            if (fcPerkCount === 1 || scPerkCount === 1) {
+              return true;
+            }
+
+            // if the intersection between combo and unWantedPerks is zero that means it has none of the unwanted perks
+            return _.intersection(combo, presets.unwantedPerks).length === 0;
+          });
+
+          // the armor piece might have just one desired combo
+          // if the length of armor pieces that fit each combo then it's a dupe
+          // eg. [ [fp,sp] ]
+          const otherArmorWithSamePerks = _.filter(wantedCombos, (wantedCombo) => {
+
+            // so for this wanted combo look through all the armor items that are legendary to find something else that can do that
+            return _.filter(armorItems, (otherId) => {
+
+              const otherTier = _.reduce(stores, (memo, store) => {
+                _.each(store.items, (item) => {
+                  if (item.id === otherId) {
+                    memo = item.tier;
+                  }
+                });
+                return memo;
+              }, "");
+              let hasMatchingParks = false;
+              if (otherId !== item.id && otherTier === "Legendary") {
+                const otherCombos = _armorCombos.items[otherId];
+
+                // loop through the other combos and see if it has a combination that matches wanted combo
+                hasMatchingParks = _.filter(otherCombos, (otherCombo) => {
+                  return _.intersection(wantedCombo, otherCombo).length === 2; // has both perks in the wantedCombo
+                }).length > 0;
               }
+              return hasMatchingParks;
+            }).length > 0;
+          });
 
-              // if the intersection between combo and unWantedPerks is zero that means it has none of the unwanted perks
-              return _.intersection(combo, presets.unwantedPerks).length === 0;
+          // console.log("item", item, wantedCombos, _armorCombos);
+
+          const armorData: DimItem[] = [];
+          _.each(stores, (store) => {
+            _.each(store.items, (item) => {
+              if (_.has(_armorCombos.items, item.id)) {
+                armorData.push(item);
+              }
             });
+          });
 
-            // the armor piece might have just one desired combo
-            // if the length of armor pieces that fit each combo then it's a dupe
-            // eg. [ [fp,sp] ]
-            const otherArmorWithSamePerks = _.filter(wantedCombos, (wantedCombo) => {
+          if (otherArmorWithSamePerks.length === wantedCombos.length) {
+            const name = item.name;
+            const armorType = item.bucket.type;
+            const itemCount = _.filter(armorData, (otherItem: DimItem) => {
+              return otherItem.name === name && otherItem.bucket.type === armorType;
+            }).length;
 
-              // so for this wanted combo look through all the armor items that are legendary to find something else that can do that
-              return _.filter(armorItems, (otherId) => {
+            // if there is more than one piece of this armor type
+            if (itemCount > 1) {
 
-                const otherTier = _.reduce(stores, (memo, store) => {
-                  _.each(store.items, (item) => {
-                    if (item.id === otherId) {
-                      memo = item.tier;
-                    }
-                  });
-                  return memo;
-                }, "");
-                let hasMatchingParks = false;
-                if (otherId !== item.id && otherTier === "Legendary") {
-                  const otherCombos = _armorCombos.items[otherId];
+              // has possible combos that can be made by other items
+              let isSafeToShard = false;
+              let advArmorCount = 0;
+              if (wantedCombos.length > 0) {
+                _.each(wantedCombos, (wantedCombo) => {
 
-                  // loop through the other combos and see if it has a combination that matches wanted combo
-                  hasMatchingParks = _.filter(otherCombos, (otherCombo) => {
-                    return _.intersection(wantedCombo, otherCombo).length === 2; // has both perks in the wantedCombo
-                  }).length > 0;
-                }
-                return hasMatchingParks;
-              }).length > 0;
-            });
+                  // if the combo is found in other 5perk gear it's safe to delete
+                  const comboCountw5Perks = _.filter(armorItems, (otherId) => {
 
-            // console.log("item", item, wantedCombos, _armorCombos);
+                    const armorCombos = _armorCombos.items[otherId];
 
-            const armorData: DimItem[] = [];
-            _.each(stores, (store) => {
-              _.each(store.items, (item) => {
-                if (_.has(_armorCombos.items, item.id)) {
-                  armorData.push(item);
-                }
-              });
-            });
-
-            if (otherArmorWithSamePerks.length === wantedCombos.length) {
-              const name = item.name;
-              const armorType = item.bucket.type;
-              const itemCount = _.filter(armorData, (otherItem: DimItem) => {
-                return otherItem.name === name && otherItem.bucket.type === armorType;
-              }).length;
-
-              // if there is more than one piece of this armor type
-              if (itemCount > 1) {
-
-                // has possible combos that can be made by other items
-                let isSafeToShard = false;
-                let advArmorCount = 0;
-                if (wantedCombos.length > 0) {
-                  _.each(wantedCombos, (wantedCombo) => {
-
-                    // if the combo is found in other 5perk gear it's safe to delete
-                    const comboCountw5Perks = _.filter(armorItems, (otherId) => {
-
-                      const armorCombos = _armorCombos.items[otherId];
-
-                      const combos = _.filter(armorCombos, (otherCombos) => {
-                        return _.intersection(otherCombos, wantedCombo).length === 2;
-                      });
-
-                      return combos.length > 0 && armorCombos.length === 6;
+                    const combos = _.filter(armorCombos, (otherCombos) => {
+                      return _.intersection(otherCombos, wantedCombo).length === 2;
                     });
 
-                    if (combos.length === 4) {
-                      isSafeToShard = true;
-                    } else if (combos.length === 6) {
-                      if (comboCountw5Perks.length > 1) {
-                        advArmorCount++;
-                      }
-                    }
+                    return combos.length > 0 && armorCombos.length === 6;
                   });
-                } else {
-                  isSafeToShard = true;
-                }
 
-                // 5-perk armor can be deleted if there is available replacement 5-perk armor for it
-                if (advArmorCount === wantedCombos.length && combos.length === 6) {
-                  isSafeToShard = true;
-                }
-
-                return isSafeToShard;
+                  if (combos.length === 4) {
+                    isSafeToShard = true;
+                  } else if (combos.length === 6) {
+                    if (comboCountw5Perks.length > 1) {
+                      advArmorCount++;
+                    }
+                  }
+                });
+              } else {
+                isSafeToShard = true;
               }
 
+              // 5-perk armor can be deleted if there is available replacement 5-perk armor for it
+              if (advArmorCount === wantedCombos.length && combos.length === 6) {
+                isSafeToShard = true;
+              }
+
+              return isSafeToShard;
             }
 
           }
+
         }
+        //}
         return false;
       },
       inloadout(item: DimItem) {
