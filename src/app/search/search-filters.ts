@@ -182,7 +182,7 @@ export function buildSearchConfig(destinyVersion: 1 | 2): SearchConfig {
     armor: ['armor'],
     categoryHash: Object.keys(categoryHashFilters),
     inloadout: ['inloadout'],
-    dupeperk: ['dupeperk'],
+    junkperks: ['junkperks'],
     maxpower: ['maxpower'],
     new: ['new'],
     tag: ['tagged'],
@@ -376,36 +376,90 @@ const presets = {
   //unwanted individual single perks (any column)
   unwantedPerks: [
     //these archetypes have plenty of ammo so very rare to need to scavenge/reserve it
-    "Auto Rifle Scavenger", "Pulse Rifle Scavenger", "Scout Rifle Scavenger",
-    "Auto Rifle Reserves", "Pulse Rifle Reserves", "Scout Rifle Reserves",
+    'Auto Rifle Scavenger',
+    'Pulse Rifle Scavenger',
+    'Scout Rifle Scavenger',
+    'Auto Rifle Reserves',
+    'Pulse Rifle Reserves',
+    'Scout Rifle Reserves',
     //I rarely do melee so remove those perks
-    "Impact Induction", "Light Reactor", "Invigoration", //"Hands-On",
+    'Impact Induction',
+    'Light Reactor',
+    'Invigoration', //"Hands-On",
     //Bow doesn't need reload speed improvements, plenty of ammo so no need to buff that either
-    "Bow Reloader", "Bow Reserves", "Arrow Scavenger",
+    'Bow Reloader',
+    'Bow Reserves',
+    'Arrow Scavenger',
     //who needs to really aim these anyway?
-    "Unflinching Grenade Launcher Aim", "Unflinching Power Aim",
+    'Unflinching Grenade Launcher Aim',
+    'Unflinching Power Aim',
     //Primary Ammo is already plentiful and if we're going to make a spec something that affects all Power weapons is meh
-    "Primary Ammo Finder", "Unflinching Power Aim", "Power Dexterity"
+    'Primary Ammo Finder',
+    'Unflinching Power Aim',
+    'Power Dexterity'
   ],
   //unwanted combos (first column + second column)
-  unwantedPerkPairs: [
-    ["Power Weapon Loader", "Sword Scavenger"]
-  ],
+  unwantedPerkPairs: [['Power Weapon Loader', 'Sword Scavenger']],
   // RL/LF/Sword Perk + non-matching RL/LF/Sword Perk
   // real example: LF loader + sword scavener
-  uniqueWeaponSlots: ["Sword", "Rocket", "Linear", "Machine"],
+  uniqueWeaponSlots: ['Sword', 'Rocket', 'Linear', 'Machine'],
 
   //if you have all the specific types you don't need the generic type
   genericTypeNames: {
-    "Kinetic Weapon": ["Scout Rifle", "Auto Rifle", "Hand Cannon", "Pulse Rifle", "Sniper Rifle", "Shotgun", "Bow", "Submachine Gun", "Sidearm", "Grenade Launcher"],
-    "Energy Weapon": ["Scout Rifle", "Auto Rifle", "Hand Cannon", "Pulse Rifle", "Sniper Rifle", "Shotgun", "Bow", "Submachine Gun", "Sidearm", "Grenade Launcher", "Fusion Rifle"],
-    "Power Weapon": ["Rocket Launcher", "Grenade Launcher", "Linear Fusion Rifle", "Sword", "Machine Gun", "Shotgun", "Sniper Rifle"],
-    "Rifle": ["Scout Rifle", "Auto Rifle", "Pulse Rifle", "Sniper Rifle", "Linear Fusion Rifle"],
-    "Oversize Weapon": ["Rocket Launcher", "Grenade Launcher", "Shotgun", "Bow"],
-    "Large Weapon": ["Rocket Launcher", "Grenade Launcher", "Shotgun"],
-    "Light Arms": ["Hand Cannon", "Submachine Gun", "Sidearm"],
-    "Scatter Projectile": ["Auto Rifle", "Submachine Gun", "Pulse Rifle", "Sidearm", "Fusion Rifle"],
-    "Precision Weapon": ["Hand Cannon", "Scout Rifle", "Trace Rifle", "Bow", "Linear Fusion Rifle", "Sniper", "Shotgun"]
+    'Kinetic Weapon': [
+      'Scout Rifle',
+      'Auto Rifle',
+      'Hand Cannon',
+      'Pulse Rifle',
+      'Sniper Rifle',
+      'Shotgun',
+      'Bow',
+      'Submachine Gun',
+      'Sidearm',
+      'Grenade Launcher'
+    ],
+    'Energy Weapon': [
+      'Scout Rifle',
+      'Auto Rifle',
+      'Hand Cannon',
+      'Pulse Rifle',
+      'Sniper Rifle',
+      'Shotgun',
+      'Bow',
+      'Submachine Gun',
+      'Sidearm',
+      'Grenade Launcher',
+      'Fusion Rifle'
+    ],
+    'Power Weapon': [
+      'Rocket Launcher',
+      'Grenade Launcher',
+      'Linear Fusion Rifle',
+      'Sword',
+      'Machine Gun',
+      'Shotgun',
+      'Sniper Rifle'
+    ],
+    Rifle: ['Scout Rifle', 'Auto Rifle', 'Pulse Rifle', 'Sniper Rifle', 'Linear Fusion Rifle'],
+    'Oversize Weapon': ['Rocket Launcher', 'Grenade Launcher', 'Shotgun', 'Bow'],
+    'Large Weapon': ['Rocket Launcher', 'Grenade Launcher', 'Shotgun'],
+    'Light Arms': ['Hand Cannon', 'Submachine Gun', 'Sidearm'],
+    'Scatter Projectile': [
+      'Auto Rifle',
+      'Submachine Gun',
+      'Pulse Rifle',
+      'Sidearm',
+      'Fusion Rifle'
+    ],
+    'Precision Weapon': [
+      'Hand Cannon',
+      'Scout Rifle',
+      'Trace Rifle',
+      'Bow',
+      'Linear Fusion Rifle',
+      'Sniper',
+      'Shotgun'
+    ]
   }
 };
 
@@ -425,7 +479,8 @@ function searchFilters(
   let _sortedStores: DimStore[] | null = null;
   let _loadoutItemIds: Set<string> | undefined;
   const _armorCombos = {
-    items: {},
+    pairs: {},
+    wantedPairs: {},
     enhancedPerks: {},
     genericFullNames: {}
   };
@@ -435,57 +490,159 @@ function searchFilters(
   const getLoadouts = _.once(() => dimLoadoutService.getLoadouts());
 
   function calculateArmorCombos(item: DimItem) {
-    console.time("calculateArmorCombos " + item.id);
-    const armorPerks = item.sockets.sockets.filter((socket) => {
-      return socket.hasRandomizedPlugItems;
-    }).map((socket) => {
-      return socket.plugOptions.map((options) => {
-        return options.plugItem.displayProperties.name;
+    console.time('calculateArmorCombos ' + item.id);
+    const armorPerks = item.sockets.sockets
+      .filter((socket) => {
+        return socket.hasRandomizedPlugItems;
+      })
+      .map((socket) => {
+        return socket.plugOptions.map((options) => {
+          return options.plugItem.displayProperties.name;
+        });
       });
-    });
 
     if (armorPerks.length === 2) {
-      const armorCombos = new Array<any>()
+      const armorCombos = new Array<any>();
       armorPerks[0].forEach((firstColumn) => {
         armorPerks[1].forEach((secondColumn) => {
           armorCombos.push([firstColumn, secondColumn]);
         });
       });
-      _armorCombos.items[item.id] = armorCombos;
+      _armorCombos.pairs[item.id] = armorCombos;
     } else {
-      _armorCombos.items[item.id] = [];
+      _armorCombos.pairs[item.id] = [];
     }
-    console.timeEnd("calculateArmorCombos " + item.id);
+
+    if (!_.has(_armorCombos.wantedPairs, item.id)) {
+      const armorItems = _.keys(_armorCombos.pairs);
+      const combos = _armorCombos.pairs[item.id];
+      _armorCombos.wantedPairs[item.id] = _.filter(combos, (combo) => {
+        // console.log("combos", combos, _.intersection(combos, unwantedPerks).length );
+        // console.log("unwantedPerks", unwantedPerks);
+        const fcPerkTag: string = combo[0].split(' ')[0];
+        const scWeapon = combo[1].split(' ')[0];
+        if (
+          presets.uniqueWeaponSlots.indexOf(fcPerkTag) > -1 &&
+          presets.uniqueWeaponSlots.indexOf(scWeapon) > -1 &&
+          presets.uniqueWeaponSlots.indexOf(fcPerkTag) !==
+            presets.uniqueWeaponSlots.indexOf(scWeapon)
+        ) {
+          // console.log("combo", combo, id);
+          return false;
+        } else if (_.indexOf(genericTagNames, fcPerkTag) > -1) {
+          const fullGenericName = _armorCombos.genericFullNames[fcPerkTag];
+          const specificCombos = presets.genericTypeNames[fullGenericName];
+          const specificComboCounts = _.map(specificCombos, (specificGunName) => {
+            const fcPerkName =
+              specificGunName + combo[0].replace(fullGenericName, '').replace(fcPerkTag, '');
+            const wantedCombo = [fcPerkName, combo[1]];
+            // console.log("wantedCombo", wantedCombo);
+            const otherArmor = _.filter(armorItems, (otherId) => {
+              const otherTier = _.reduce(
+                stores,
+                (memo, store) => {
+                  _.each(store.items, (item) => {
+                    if (item.id === otherId) {
+                      memo = item.tier;
+                    }
+                  });
+                  return memo;
+                },
+                ''
+              );
+
+              let hasMatchingParks = false;
+              if (otherId != item.id && otherTier == 'Legendary') {
+                const otherCombos = _armorCombos.pairs[otherId];
+                // loop through the other combos and see if it has a combination that matches wanted combo
+                hasMatchingParks =
+                  _.filter(otherCombos, (otherCombo) => {
+                    return (
+                      _.intersection(wantedCombo, otherCombo).length === 2 ||
+                      _.intersection(['Enhanced ' + wantedCombo[0], wantedCombo[1]], otherCombo)
+                        .length === 2
+                    ); //has both perks in the wantedCombo
+                  }).length > 0;
+              }
+              return hasMatchingParks;
+            });
+
+            // console.log("searching for combo", wantedCombo, otherArmor.length);
+            return otherArmor.length;
+          });
+          // console.log("generic combo", combo, specificComboCounts);
+          // if there is no item with a zero then all specific slots that can fill the generic are available
+          if (specificComboCounts.indexOf(0) === -1) {
+            // console.log("generic combo-2", combo, specificComboCounts);
+            return false;
+          }
+        }
+
+        // if the combo is found in the array of existing unwanted perks i don't want it
+        const matchesUnwanted = _.indexOf(unwantedCombos, combo.join(',')) > -1;
+
+        if (matchesUnwanted) {
+          return false;
+        }
+
+        const fcPerkCount = _.filter(armorItems, (otherItemId) => {
+          const stdPerks = _.flatten(_armorCombos.pairs[otherItemId]);
+
+          return stdPerks.indexOf(combo[0]) > -1 && presets.unwantedPerks.indexOf(combo[0]) === -1;
+        }).length;
+
+        const scPerkCount = _.filter(armorItems, (otherItemId) => {
+          const stdPerks = _.flatten(_armorCombos.pairs[otherItemId]);
+
+          return stdPerks.indexOf(combo[1]) > -1 && presets.unwantedPerks.indexOf(combo[1]) === -1;
+        }).length;
+
+        /*if (item.id == "6917529086013942993") {
+          console.log("fcPerkCount", fcPerkCount);
+        }*/
+        // if the perk is unique and not found in any other piece of armor don't delete it
+        if (fcPerkCount === 1 || scPerkCount === 1) {
+          return true;
+        }
+
+        // if the intersection between combo and unWantedPerks is zero that means it has none of the unwanted perks
+        return _.intersection(combo, presets.unwantedPerks).length === 0;
+      });
+    }
+    console.timeEnd('calculateArmorCombos ' + item.id);
   }
 
-  function initDupePerkMaps() {
-
-    console.time("initDupePerkMaps pt1");
+  const initJunkItemMaps = _.throttle(() => {
+    console.time('initJunkItemMaps pt1');
     if (_.isEmpty(_armorCombos.genericFullNames)) {
-      _armorCombos.genericFullNames = _.zipObject(_.map(_.keys(presets.genericTypeNames), (keyName) => {
-        return keyName.split(" ")[0];
-      }), _.keys(presets.genericTypeNames));
+      _armorCombos.genericFullNames = _.zipObject(
+        _.map(_.keys(presets.genericTypeNames), (keyName) => {
+          return keyName.split(' ')[0];
+        }),
+        _.keys(presets.genericTypeNames)
+      );
+      console.log('initialized _armorCombos.genericFullNames');
     }
 
     if (genericTagNames.length === 0) {
       _.each(_.keys(presets.genericTypeNames), (keyName: string) => {
-        const tagName = keyName.split(" ")[0];
+        const tagName = keyName.split(' ')[0];
         genericTagNames.push(tagName);
       });
+      console.log('initialized _armorCombos.genericTagNames');
     }
-    console.timeEnd("initDupePerkMaps pt1");
+    console.timeEnd('initJunkItemMaps pt1');
 
-    console.time("initDupePerkMaps pt2");
+    console.time('initJunkItemMaps pt2');
     for (const store of stores) {
       for (const otherItem of store.items) {
-        if (otherItem.bucket.sort === "Armor" && otherItem.tier === "Legendary") {
-
-          if (!_.has(_armorCombos.items, otherItem.id)) {
-            //console.log("items", _armorCombos.items, otherItem.id);
+        if (otherItem.bucket.sort === 'Armor' && otherItem.tier === 'Legendary') {
+          if (!_.has(_armorCombos.pairs, otherItem.id)) {
+            // console.log("items", _armorCombos.pairs, otherItem.id);
             calculateArmorCombos(otherItem);
           }
 
-          const armorCombos = _armorCombos.items[otherItem.id];
+          const armorCombos = _armorCombos.pairs[otherItem.id];
 
           /*if ( otherItem.id === "6917529085842660007" ){
             console.log("item", otherItem);;
@@ -494,13 +651,13 @@ function searchFilters(
             // console.log("armorCombos", armorCombos);
 
             armorCombos.forEach((combo) => {
-              const isEnhancedCombo = combo.join(" ").indexOf("Enhanced") > -1;
+              const isEnhancedCombo = combo.join(' ').indexOf('Enhanced') > -1;
               if (isEnhancedCombo) {
                 // console.log("isEnhancedCombo", isEnhancedCombo, combo);
                 const normalCombo = combo.slice(0);
                 // enhanced combos only affect the first column
-                normalCombo[0] = normalCombo[0].replace("Enhanced ", "");
-                const keyName = normalCombo.join(",");
+                normalCombo[0] = normalCombo[0].replace('Enhanced ', '');
+                const keyName = normalCombo.join(',');
                 _armorCombos.enhancedPerks[keyName] = keyName;
               }
             });
@@ -510,14 +667,13 @@ function searchFilters(
 
           // join the array of unwanted perks and unwanted bc enhanced
           _.each(presets.unwantedPerkPairs, (combo) => {
-            unwantedCombos.push(combo.join(","));
+            unwantedCombos.push(combo.join(','));
           });
-
         }
       }
-      console.timeEnd("initDupePerkMaps pt2");
+      console.timeEnd('initJunkItemMaps pt2');
     }
-  }
+  }, 5000);
 
   function initDupes() {
     if (_duplicates === null) {
@@ -1213,8 +1369,8 @@ function searchFilters(
                     Boolean(
                       (perk.displayProperties.name &&
                         allExistAtStart(perk.displayProperties.name, predicate)) ||
-                      (perk.displayProperties.description &&
-                        allExistAtStart(perk.displayProperties.description, predicate))
+                        (perk.displayProperties.description &&
+                          allExistAtStart(perk.displayProperties.description, predicate))
                     )
                   )
               )
@@ -1431,126 +1587,52 @@ function searchFilters(
           );
         }
       },
-      dupeperk(item: DimItem) {
-        if (item.bucket.inArmor && item.tier === "Legendary") {
-
-          if (item.dimInfo.tag === "favorite" || item.dimInfo.tag === "keep") {
+      junkperks(item: DimItem) {
+        if (item.bucket.inArmor && item.tier === 'Legendary') {
+          if (item.dimInfo.tag === 'favorite' || item.dimInfo.tag === 'keep') {
             return false;
           }
 
           //if (item.id === "6917529085842660007") {
 
-          initDupePerkMaps();
+          initJunkItemMaps();
 
-          const combos = _armorCombos.items[item.id];
-          const armorItems = _.keys(_armorCombos.items);
-          const wantedCombos = _.filter(combos, (combo) => {
-            // console.log("combos", combos, _.intersection(combos, unwantedPerks).length );
-            // console.log("unwantedPerks", unwantedPerks);
-            const fcPerkTag: string = combo[0].split(" ")[0];
-            const scWeapon = combo[1].split(" ")[0];
-            if (presets.uniqueWeaponSlots.indexOf(fcPerkTag) > -1 && presets.uniqueWeaponSlots.indexOf(scWeapon) > -1 &&
-              presets.uniqueWeaponSlots.indexOf(fcPerkTag) !== presets.uniqueWeaponSlots.indexOf(scWeapon)) {
-              // console.log("combo", combo, id);
-              return false;
-            } else if (_.indexOf(genericTagNames, fcPerkTag) > -1) {
-              const fullGenericName = _armorCombos.genericFullNames[fcPerkTag];
-              const specificCombos = presets.genericTypeNames[fullGenericName];
-              const specificComboCounts = _.map(specificCombos, (specificGunName) => {
-                const fcPerkName = specificGunName + combo[0].replace(fullGenericName, "").replace(fcPerkTag, "");
-                const wantedCombo = [fcPerkName, combo[1]];
-                // console.log("wantedCombo", wantedCombo);
-                const otherArmor = _.filter(armorItems, (otherId) => {
+          const combos = _armorCombos.pairs[item.id];
+          const armorItems = _.keys(_armorCombos.pairs);
+          const wantedCombos = _armorCombos.wantedPairs[item.id];
 
-                  const otherTier = _.reduce(stores, (memo, store) => {
+          // the armor piece might have just one desired combo
+          // if the length of armor pieces that fit each combo then it's a dupe
+          // eg. [ [fp,sp] ]
+          const otherArmorWithSamePerks = _.filter(wantedCombos, (wantedCombo) => {
+            // so for this wanted combo look through all the armor items that are legendary to find something else that can do that
+            return (
+              _.filter(armorItems, (otherId) => {
+                const otherTier = _.reduce(
+                  stores,
+                  (memo, store) => {
                     _.each(store.items, (item) => {
                       if (item.id === otherId) {
                         memo = item.tier;
                       }
                     });
                     return memo;
-                  }, "");
+                  },
+                  ''
+                );
+                let hasMatchingParks = false;
+                if (otherId !== item.id && otherTier === 'Legendary') {
+                  const otherCombos = _armorCombos.pairs[otherId];
 
-                  let hasMatchingParks = false;
-                  if (otherId != item.id && otherTier == "Legendary") {
-                    const otherCombos = _armorCombos.items[otherId];
-                    // loop through the other combos and see if it has a combination that matches wanted combo
-                    hasMatchingParks = _.filter(otherCombos, (otherCombo) => {
-                      return _.intersection(wantedCombo, otherCombo).length === 2 || _.intersection(["Enhanced " + wantedCombo[0], wantedCombo[1]], otherCombo).length === 2; //has both perks in the wantedCombo
+                  // loop through the other combos and see if it has a combination that matches wanted combo
+                  hasMatchingParks =
+                    _.filter(otherCombos, (otherCombo) => {
+                      return _.intersection(wantedCombo, otherCombo).length === 2; // has both perks in the wantedCombo
                     }).length > 0;
-                  }
-                  return hasMatchingParks;
-                });
-
-                // console.log("searching for combo", wantedCombo, otherArmor.length);
-                return otherArmor.length;
-              });
-              // console.log("generic combo", combo, specificComboCounts);
-              // if there is no item with a zero then all specific slots that can fill the generic are available
-              if (specificComboCounts.indexOf(0) === -1) {
-                // console.log("generic combo-2", combo, specificComboCounts);
-                return false;
-              }
-            }
-
-            // if the combo is found in the array of existing unwanted perks i don't want it
-            const matchesUnwanted = _.indexOf(unwantedCombos, combo.join(",")) > -1;
-
-            if (matchesUnwanted) {
-              return false;
-            }
-
-            const fcPerkCount = _.filter(armorItems, (otherItemId) => {
-              const stdPerks = _.flatten(_armorCombos.items[otherItemId]);
-
-              return stdPerks.indexOf(combo[0]) > -1 && presets.unwantedPerks.indexOf(combo[0]) === -1;
-            }).length;
-
-            const scPerkCount = _.filter(armorItems, (otherItemId) => {
-              const stdPerks = _.flatten(_armorCombos.items[otherItemId]);
-
-              return stdPerks.indexOf(combo[1]) > -1 && presets.unwantedPerks.indexOf(combo[1]) === -1;
-            }).length;
-
-            /*if (item.id == "6917529086013942993") {
-              console.log("fcPerkCount", fcPerkCount);
-            }*/
-            // if the perk is unique and not found in any other piece of armor don't delete it
-            if (fcPerkCount === 1 || scPerkCount === 1) {
-              return true;
-            }
-
-            // if the intersection between combo and unWantedPerks is zero that means it has none of the unwanted perks
-            return _.intersection(combo, presets.unwantedPerks).length === 0;
-          });
-
-          // the armor piece might have just one desired combo
-          // if the length of armor pieces that fit each combo then it's a dupe
-          // eg. [ [fp,sp] ]
-          const otherArmorWithSamePerks = _.filter(wantedCombos, (wantedCombo) => {
-
-            // so for this wanted combo look through all the armor items that are legendary to find something else that can do that
-            return _.filter(armorItems, (otherId) => {
-
-              const otherTier = _.reduce(stores, (memo, store) => {
-                _.each(store.items, (item) => {
-                  if (item.id === otherId) {
-                    memo = item.tier;
-                  }
-                });
-                return memo;
-              }, "");
-              let hasMatchingParks = false;
-              if (otherId !== item.id && otherTier === "Legendary") {
-                const otherCombos = _armorCombos.items[otherId];
-
-                // loop through the other combos and see if it has a combination that matches wanted combo
-                hasMatchingParks = _.filter(otherCombos, (otherCombo) => {
-                  return _.intersection(wantedCombo, otherCombo).length === 2; // has both perks in the wantedCombo
-                }).length > 0;
-              }
-              return hasMatchingParks;
-            }).length > 0;
+                }
+                return hasMatchingParks;
+              }).length > 0
+            );
           });
 
           // console.log("item", item, wantedCombos, _armorCombos);
@@ -1558,7 +1640,7 @@ function searchFilters(
           const armorData: DimItem[] = [];
           _.each(stores, (store) => {
             _.each(store.items, (item) => {
-              if (_.has(_armorCombos.items, item.id)) {
+              if (_.has(_armorCombos.pairs, item.id)) {
                 armorData.push(item);
               }
             });
@@ -1573,17 +1655,14 @@ function searchFilters(
 
             // if there is more than one piece of this armor type
             if (itemCount > 1) {
-
               // has possible combos that can be made by other items
               let isSafeToShard = false;
               let advArmorCount = 0;
               if (wantedCombos.length > 0) {
                 _.each(wantedCombos, (wantedCombo) => {
-
                   // if the combo is found in other 5perk gear it's safe to delete
                   const comboCountw5Perks = _.filter(armorItems, (otherId) => {
-
-                    const armorCombos = _armorCombos.items[otherId];
+                    const armorCombos = _armorCombos.pairs[otherId];
 
                     const combos = _.filter(armorCombos, (otherCombos) => {
                       return _.intersection(otherCombos, wantedCombo).length === 2;
@@ -1611,9 +1690,7 @@ function searchFilters(
 
               return isSafeToShard;
             }
-
           }
-
         }
         //}
         return false;
@@ -1679,9 +1756,9 @@ function searchFilters(
           item.sockets.sockets.some((socket) => {
             return Boolean(
               socket.plug &&
-              socket.plug.plugItem.plug &&
-              socket.plug.plugItem.plug.plugCategoryHash === 2973005342 &&
-              socket.plug.plugItem.hash !== 4248210736
+                socket.plug.plugItem.plug &&
+                socket.plug.plugItem.plug.plugCategoryHash === 2973005342 &&
+                socket.plug.plugItem.hash !== 4248210736
             );
           })
         );
