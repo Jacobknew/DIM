@@ -70,7 +70,7 @@ export default class InventoryItem extends React.Component<Props> {
         id={item.index}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
-        title={`${item.name}\n${item.typeName}`}
+        title={`${item.name}\n${item.typeName}\n${item.junkReport}`}
         className={classNames('item', itemImageStyles)}
       >
         {item.percentComplete > 0 && !item.complete && (
