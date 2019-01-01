@@ -8,6 +8,7 @@ const junkPerkPresets = require('./config.js');
     combo: perk pair from first and second column traits
 */
 let _junkPerkMaps = null;
+
 function initJunkPerks(stores) {
   if (_junkPerkMaps === null && stores.length > 0) {
     dupeReport = [];
@@ -28,6 +29,9 @@ function initJunkPerks(stores) {
       ),
       /* Reason: Unwanted Perk Pair */
       unwantedPerkPairs: _.map(junkPerkPresets.unwantedPerkPairs, function(combo) {
+        return combo.join(',');
+      }),
+      wantedPerkPairs: _.map(junkPerkPresets.wantedPerkPairs, function(combo) {
         return combo.join(',');
       }),
       armorCombos: {},
@@ -125,10 +129,10 @@ function initJunkPerks(stores) {
         }
 
         /* Reason: Enhanced Pair
-                    If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
-                    example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
-                    Enhanced Perks only affect the first column of the pair
-                */
+            If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
+            example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
+            Enhanced Perks only affect the first column of the pair
+        */
         var isEnhancedCombo = combo[0].indexOf('Enhanced') > -1;
         if (isEnhancedCombo) {
           var normalCombo = _.clone(combo);
@@ -169,9 +173,14 @@ function junkPerkFilter(item, dupeReport) {
     // Only Y1 Armor has no perks to make this array zero so mark it for dismantle
     if (!armorCombos || (armorCombos && armorCombos.length === 0)) {
       dupeReport.push(
-        [item.name, 'light:=' + item.basePower, item.id, 'Reason: No Armor Combos Available'].join(
-          ' '
-        )
+        [
+          item.classTypeName,
+          item.bucket.type,
+          item.name,
+          'light:=' + item.basePower,
+          item.id,
+          'Reason: No Armor Combos Available'
+        ].join(' ')
       );
       //console.log();
       return true;
@@ -190,25 +199,49 @@ function junkPerkFilter(item, dupeReport) {
 
     const wantedCombos = _.filter(armorCombos, (combo) => {
       /* item checks
-                1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
-                2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
-                3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
-                4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
-                5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
-                5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
-                6. multi-tier perks - heavy lookup - reason:
-                    - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
-            */
+          1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
+          2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
+          3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
+          4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
+          5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
+          5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
+          6. multi-tier perks - heavy lookup - reason:
+              - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
+      */
       /* Unique Perk */
       const fcPerkName = combo[0];
       const scPerkName = combo[1];
       const fcPerkCount = _junkPerkMaps.armorPerkCount[fcPerkName];
       const scPerkCount = _junkPerkMaps.armorPerkCount[scPerkName];
       /*if (item.id == "6917529086013942993") {
-                console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
-            }*/
+          console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
+      }*/
       if (fcPerkCount == 1 || scPerkCount == 1) {
         comboReasons.push('Unique Perk');
+        return true;
+      }
+
+      /* Explicitly Wanted Pair desipte unwanted Perk */
+      const comboString = combo.join(',');
+      const wantedPair = _.indexOf(_junkPerkMaps.wantedPerkPairs, comboString) > -1;
+      if (wantedPair) {
+        //TODO fix this logic so it doesn't repeat further down
+        const perkPairCount = _junkPerkMaps.perkPairCount[comboString];
+        if (isFourPa && (perkPairCount.fourPa >= 2 || perkPairCount.fivePa >= 1)) {
+          comboReasons.push(
+            'Duplicate Exp. Pair ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa
+          );
+          return false;
+        }
+        //if the item is a 5pa then it can only be replaced by another 5pa armor piece
+        if (!isFourPa && perkPairCount.fivePa >= 2) {
+          comboReasons.push(
+            'Dupe Exp. Pair In Other 5PA ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa
+          );
+          return false;
+        }
+        //if the particular pair is wanted and it's not an existing dupe in other armor then return true to keep this unique perk pair
+        comboReasons.push('Explicit Wanted Perk Pair');
         return true;
       }
 
@@ -220,7 +253,6 @@ function junkPerkFilter(item, dupeReport) {
       }
 
       /* Unwanted Pair */
-      const comboString = combo.join(',');
       const unwantedPair = _.indexOf(_junkPerkMaps.unwantedPerkPairs, comboString) > -1;
       if (unwantedPair) {
         comboReasons.push('Unwanted Perk Pair');
@@ -237,8 +269,8 @@ function junkPerkFilter(item, dupeReport) {
       /* Duplicate Perk */
       const perkPairCount = _junkPerkMaps.perkPairCount[comboString];
       /*if (item.id == "6917529086278883300") {
-                console.log("perkPairCount", perkPairCount, perkPairCount.fourPa > 2, perkPairCount.fivePa > 2);
-            }*/
+          console.log("perkPairCount", perkPairCount, perkPairCount.fourPa > 2, perkPairCount.fivePa > 2);
+      }*/
       // if the item has a replacement 4pa piece it needs another 4pa or 5pa replacement to be considered a dupe
       if (isFourPa && (perkPairCount.fourPa >= 2 || perkPairCount.fivePa >= 1)) {
         comboReasons.push('Duplicate Pair ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa);
@@ -250,8 +282,8 @@ function junkPerkFilter(item, dupeReport) {
         return false;
       }
       /*if (comboString == "Unflinching Fusion Rifle Aim,Special Ammo Finder") {
-                console.log("test", perkPairCount)
-            }*/
+          console.log("test", perkPairCount)
+      }*/
       /* Enhanced Pair - Enhanced version of the perk pair available */
       const hasEnhancedPair = _.has(_junkPerkMaps.unwantedPairBcEnhanced, comboString);
       if (hasEnhancedPair) {
@@ -265,15 +297,22 @@ function junkPerkFilter(item, dupeReport) {
     });
 
     /*if (item.id == "6917529086431217491") {
-            console.log("wantedCombos", wantedCombos, comboReasons);
-        }*/
+        console.log("wantedCombos", wantedCombos, comboReasons);
+    }*/
 
     // if the item has no wanted combos then it can safely be dismantled
     if (wantedCombos.length == 0) {
       let dupeText = [];
       //console.log("unwantedItem", item.name, 'light:=' + item.Power, item.id, armorCombos, comboReasons);
       dupeText.push(
-        [item.name, 'light:=' + item.basePower, item.id, 'Reason: No Wanted Combos'].join(' ')
+        [
+          item.classTypeName,
+          item.bucket.type,
+          item.name,
+          'light:=' + item.basePower,
+          item.id,
+          'Reason: No Wanted Combos'
+        ].join(' ')
       );
       _.each(armorCombos, (combo, index) => {
         var reason = comboReasons[index];
