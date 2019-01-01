@@ -18,7 +18,7 @@ import store from '../store/store';
 import { loadoutsSelector } from '../loadout/reducer';
 import { InventoryCuratedRoll } from '../curated-rolls/curatedRollService';
 import { curationsSelector } from '../curated-rolls/reducer';
-import { initJunkPerks, junkPerkFilter, dupeReport } from './junkPerkFilter.js';
+import { initJunkPerks, junkPerkFilter } from './junkPerkFilter.js';
 
 export const searchConfigSelector = createSelector(
   destinyVersionSelector,
@@ -389,6 +389,7 @@ function searchFilters(
   let _sortedStores: DimStore[] | null = null;
   let _loadoutItemIds: Set<string> | undefined;
   const getLoadouts = _.once(() => dimLoadoutService.getLoadouts());
+  const dupeReport = [];
   initJunkPerks(stores);
 
   function initDupes() {
@@ -904,7 +905,7 @@ function searchFilters(
         return _maxPowerItems.includes(item.id);
       },
       junkperk(item: DimItem) {
-        const doShow = junkPerkFilter(item);
+        const doShow = junkPerkFilter(item, dupeReport);
         /*if (item.id === "6917529085495455164") {
           console.log("doShow", doShow, dupeReport, item);
         }*/
