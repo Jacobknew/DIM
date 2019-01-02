@@ -906,6 +906,8 @@ function searchFilters(
       },
       junkperk(item: DimItem) {
         const doShow = junkPerkFilter(item, dupeReport);
+        item.junkReport = dupeReport[dupeReport.length - 1];
+
         /*if (item.id === "6917529085495455164") {
           console.log("doShow", doShow, dupeReport, item);
         }*/
