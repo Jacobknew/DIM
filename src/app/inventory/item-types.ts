@@ -148,6 +148,8 @@ export interface DimItem {
   /** Sometimes the API doesn't return socket info. This tells whether the item *should* have socket info but doesn't. */
   missingSockets: boolean;
 
+  /* Attaches report from junkperk on why the item is not desirable, placeholder property until a better solution is found */
+  junkReport: string;
   /**
    * Information about community ratings.
    *

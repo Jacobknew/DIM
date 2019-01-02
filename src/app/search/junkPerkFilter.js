@@ -35,28 +35,35 @@ function initJunkPerks(stores) {
         return combo.join(',');
       }),
       genericEtsPerkNames: _.keys(junkPerkPresets.genericEtsPerks),
-      armorCombos: {},
-      armorPerks: {},
-      impossiblePerkPairs: {},
-      perkPairCount: {},
-      armorPerkCount: {},
-      itemTypeNameCounts: {},
-      unwantedPairBcEnhanced: {},
-      unwantedBcGenericEtsPairs: {}
+      statsByClassName: {}
     };
-    // console.log("legendaryArmor!", _.keys(_junkPerkMaps.legendaryArmor).length);
     /* transform the first and second column to perk-pairs */
     _.each(_junkPerkMaps.legendaryArmor, (item) => {
       /* Reason: Unique Armor Piece */
       const type = item.type;
       const name = item.name;
-      if (!_.has(_junkPerkMaps.itemTypeNameCounts, type)) {
-        _junkPerkMaps.itemTypeNameCounts[type] = {};
+      const classType = item.classTypeName;
+      //precompute all the stats per class name
+      if (!_.has(_junkPerkMaps.statsByClassName, classType)) {
+        _junkPerkMaps.statsByClassName[classType] = {
+          armorCombos: {},
+          armorPerks: {},
+          impossiblePerkPairs: {},
+          perkPairCount: {},
+          armorPerkCount: {},
+          itemTypeNameCounts: {},
+          unwantedPairBcEnhanced: {},
+          unwantedBcGenericEtsPairs: {}
+        };
       }
-      if (!_.has(_junkPerkMaps.itemTypeNameCounts[type], name)) {
-        _junkPerkMaps.itemTypeNameCounts[type][name] = 0;
+      const junkPmByClass = _junkPerkMaps.statsByClassName[classType];
+      if (!_.has(junkPmByClass.itemTypeNameCounts, type)) {
+        junkPmByClass.itemTypeNameCounts[type] = {};
       }
-      _junkPerkMaps.itemTypeNameCounts[type][name]++;
+      if (!_.has(junkPmByClass.itemTypeNameCounts[type], name)) {
+        junkPmByClass.itemTypeNameCounts[type][name] = 0;
+      }
+      junkPmByClass.itemTypeNameCounts[type][name]++;
 
       /* Transform Native Perks format to simplified format */
       const armorPerks = item.sockets.sockets
@@ -83,95 +90,107 @@ function initJunkPerks(stores) {
         });
       }
       /* Armor Perks reason: Unique Perks */
-      _junkPerkMaps.armorPerks[item.id] = flatPerks;
+      junkPmByClass.armorPerks[item.id] = flatPerks;
       /* Armor Combos reason: figuring everything out */
-      _junkPerkMaps.armorCombos[item.id] = armorCombos;
+      junkPmByClass.armorCombos[item.id] = armorCombos;
     });
 
-    /* loop over combos to precompute statistics for the filter */
-    _.each(_junkPerkMaps.armorCombos, (combos, itemId) => {
-      const isFourPa = combos.length == 4;
-      const perks = _junkPerkMaps.armorPerks[itemId];
-      const armorType = _.find(_junkPerkMaps.legendaryArmor, { id: itemId }).bucket.type;
-      // const applicableGenericEtsNames = junkPerkPresets.genericTypeEquivalents
-      /* Reason: Unique Perk */
-      _.each(perks, (perkName) => {
-        if (!_.has(_junkPerkMaps.armorPerkCount, perkName)) {
-          _junkPerkMaps.armorPerkCount[perkName] = 0;
-        }
-        _junkPerkMaps.armorPerkCount[perkName]++;
-      });
+    /* loop over combos to precompute statistics for the filter per class */
+    _.each(_.keys(_junkPerkMaps.statsByClassName), (classTypeName) => {
+      const junkPmByClass = _junkPerkMaps.statsByClassName[classTypeName];
+      _.each(junkPmByClass.armorCombos, (combos, itemId) => {
+        const isFourPa = combos.length == 4;
+        const itemInfo = _.find(_junkPerkMaps.legendaryArmor, { id: itemId });
+        const perks = junkPmByClass.armorPerks[itemId];
+        const armorType = itemInfo.bucket.type;
+        // const applicableGenericEtsNames = junkPerkPresets.genericTypeEquivalents
+        /* Reason: Unique Perk */
+        _.each(perks, (perkName) => {
+          if (!_.has(junkPmByClass.armorPerkCount, perkName)) {
+            junkPmByClass.armorPerkCount[perkName] = 0;
+          }
+          junkPmByClass.armorPerkCount[perkName]++;
+        });
 
-      _.each(combos, (combo) => {
-        const fcPerkTag = combo[0].split(' ')[0];
-        const scWeapon = combo[1].split(' ')[0];
-        const comboString = combo.join(',');
-        let fcPerkName = combo[0];
-        //console.log("armorType", armorType);
-        //manipulate the string in this way so I can check for the beginning of the string and avoid catch {{Other}} Rifle parks
-        if (armorType == 'Chest Armor') {
-          fcPerkName = fcPerkName.replace('Unflinching ', '');
-        }
-        _.each(_junkPerkMaps.genericEtsPerkNames, function(genericEtsPerkName) {
-          //this check ensures it's only in the beginning (first character) of the perk name
-          if (fcPerkName.indexOf(genericEtsPerkName) == 0) {
-            // console.log("fcPerkName", genericEtsPerkName, combo );
-            var affectedWeapons = junkPerkPresets.genericEtsPerks[genericEtsPerkName];
-            _.each(affectedWeapons, function(weaponName) {
-              //return an array of perks that aren't needed bc the equivalent is found
-              var fcPerkNameEquiv = combo[0].replace(genericEtsPerkName, weaponName);
-              if (armorType == 'Chest Armor' && genericEtsPerkName == 'Large Arms') {
-                fcPerkNameEquiv = fcPerkNameEquiv + ' Aim';
-              }
-              var equivalentCombo = [fcPerkNameEquiv, combo[1]].join(',');
-              _junkPerkMaps.unwantedBcGenericEtsPairs[equivalentCombo] = combo;
-            });
-            //console.log("combo", combo);
-            //unwantedBcGenericFastPairs[keyName] = keyName;
+        _.each(combos, (combo) => {
+          const fcPerkTag = combo[0].split(' ')[0];
+          const scWeapon = combo[1].split(' ')[0];
+          const comboString = combo.join(',');
+          let fcPerkName = combo[0];
+          //console.log("armorType", armorType);
+          //manipulate the string in this way so I can check for the beginning of the string and avoid catch {{Other}} Rifle parks
+          if (armorType == 'Chest Armor') {
+            fcPerkName = fcPerkName.replace('Unflinching ', '');
+          }
+          _.each(_junkPerkMaps.genericEtsPerkNames, function(genericEtsPerkName) {
+            //this check ensures it's only in the beginning (first character) of the perk name
+            if (fcPerkName.indexOf(genericEtsPerkName) == 0) {
+              // console.log("fcPerkName", genericEtsPerkName, combo );
+              var affectedWeapons = junkPerkPresets.genericEtsPerks[genericEtsPerkName];
+              _.each(affectedWeapons, function(weaponName) {
+                //return an array of perks that aren't needed bc the equivalent is found
+                var fcPerkNameEquiv = combo[0].replace(genericEtsPerkName, weaponName);
+                if (armorType == 'Chest Armor' && genericEtsPerkName == 'Large Arms') {
+                  fcPerkNameEquiv = fcPerkNameEquiv + ' Aim';
+                }
+                var equivalentCombo = [fcPerkNameEquiv, combo[1]].join(',');
+                junkPmByClass.unwantedBcGenericEtsPairs[equivalentCombo] = combo;
+              });
+              //console.log("combo", combo);
+              //unwantedBcGenericFastPairs[keyName] = keyName;
+            }
+          });
+          // console.log("junkPmByClass.unwantedBcGenericEtsPairs", junkPmByClass.unwantedBcGenericEtsPairs);
+
+          /* Reason: Impossible Perk Pairs */
+          if (
+            junkPerkPresets.uniqueWeaponSlots.indexOf(fcPerkTag) > -1 &&
+            junkPerkPresets.uniqueWeaponSlots.indexOf(scWeapon) > -1 &&
+            junkPerkPresets.uniqueWeaponSlots.indexOf(fcPerkTag) !=
+              junkPerkPresets.uniqueWeaponSlots.indexOf(scWeapon)
+          ) {
+            junkPmByClass.impossiblePerkPairs[comboString] = comboString;
+          }
+
+          /* Reason Duplicate Perk Pair */
+          if (!_.has(junkPmByClass.perkPairCount, comboString)) {
+            junkPmByClass.perkPairCount[comboString] = {
+              fivePa: 0,
+              fourPa: 0,
+              fivePaIDs: [],
+              fourPaIDs: []
+            };
+          }
+          var ids = junkPmByClass.perkPairCount[comboString][isFourPa ? 'fourPaIDs' : 'fivePaIDs'];
+          if (ids.indexOf(itemId) == -1) {
+            junkPmByClass.perkPairCount[comboString][isFourPa ? 'fourPa' : 'fivePa']++;
+            ids.push(itemId);
+          }
+
+          /* Reason: Enhanced Pair
+                                If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
+                                example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
+                                Enhanced Perks only affect the first column of the pair
+                            */
+          var isEnhancedCombo = combo[0].indexOf('Enhanced') > -1;
+          if (isEnhancedCombo) {
+            var normalCombo = _.clone(combo);
+            normalCombo[0] = normalCombo[0].replace('Enhanced ', '');
+            var keyName = normalCombo.join(',');
+            junkPmByClass.unwantedPairBcEnhanced[keyName] = keyName;
           }
         });
-        // console.log("_junkPerkMaps.unwantedBcGenericEtsPairs", _junkPerkMaps.unwantedBcGenericEtsPairs);
-
-        /* Reason: Impossible Perk Pairs */
-        if (
-          junkPerkPresets.uniqueWeaponSlots.indexOf(fcPerkTag) > -1 &&
-          junkPerkPresets.uniqueWeaponSlots.indexOf(scWeapon) > -1 &&
-          junkPerkPresets.uniqueWeaponSlots.indexOf(fcPerkTag) !=
-            junkPerkPresets.uniqueWeaponSlots.indexOf(scWeapon)
-        ) {
-          _junkPerkMaps.impossiblePerkPairs[comboString] = comboString;
-        }
-
-        /* Reason Duplicate Perk Pair */
-        if (!_.has(_junkPerkMaps.perkPairCount, comboString)) {
-          _junkPerkMaps.perkPairCount[comboString] = {
-            fivePa: 0,
-            fourPa: 0,
-            fivePaIDs: [],
-            fourPaIDs: []
-          };
-        }
-        var ids = _junkPerkMaps.perkPairCount[comboString][isFourPa ? 'fourPaIDs' : 'fivePaIDs'];
-        if (ids.indexOf(itemId) == -1) {
-          _junkPerkMaps.perkPairCount[comboString][isFourPa ? 'fourPa' : 'fivePa']++;
-          ids.push(itemId);
-        }
-
-        /* Reason: Enhanced Pair
-                    If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
-                    example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
-                    Enhanced Perks only affect the first column of the pair
-                */
-        var isEnhancedCombo = combo[0].indexOf('Enhanced') > -1;
-        if (isEnhancedCombo) {
-          var normalCombo = _.clone(combo);
-          normalCombo[0] = normalCombo[0].replace('Enhanced ', '');
-          var keyName = normalCombo.join(',');
-          _junkPerkMaps.unwantedPairBcEnhanced[keyName] = keyName;
-        }
       });
+      junkPmByClass.impossiblePerkPairs = _.map(junkPmByClass.impossiblePerkPairs);
+      //_junkPerkMaps.statsByClassName[classTypeName] = junkPmByClass;
+      const pmStats = _.zipObject(
+        _.keys(junkPmByClass),
+        _.map(_.keys(junkPmByClass), (keyName) => {
+          return _.keys(junkPmByClass[keyName]).length;
+        })
+      );
+      console.log('junkPmByClass', classTypeName, pmStats);
     });
-    _junkPerkMaps.impossiblePerkPairs = _.map(_junkPerkMaps.impossiblePerkPairs);
 
     //console.log("armor items", _junkPerkMaps.itemTypeNameCounts);
     const perkMapStats = _.zipObject(
@@ -197,7 +216,8 @@ function junkPerkFilter(item, dupeReport) {
 
     initJunkPerks();
 
-    const armorCombos = _junkPerkMaps.armorCombos[item.id];
+    const junkPmByClass = _junkPerkMaps.statsByClassName[item.classTypeName];
+    const armorCombos = junkPmByClass.armorCombos[item.id];
 
     // Only Y1 Armor has no perks to make this array zero so mark it for dismantle
     if (!armorCombos || (armorCombos && armorCombos.length === 0)) {
@@ -216,7 +236,7 @@ function junkPerkFilter(item, dupeReport) {
     }
 
     // if the item is unique by type/name then regardless of anything else, keep it to ensure a full set is available
-    var itemTypeNameCount = _junkPerkMaps.itemTypeNameCounts[item.type][item.name];
+    var itemTypeNameCount = junkPmByClass.itemTypeNameCounts[item.type][item.name];
     if (itemTypeNameCount === 1) {
       //console.log("Skipping Unique Item", item.name, 'light:=' + item.Power, item.id, "No Armor Combos Available");
       return false;
@@ -228,23 +248,23 @@ function junkPerkFilter(item, dupeReport) {
 
     const wantedCombos = _.filter(armorCombos, (combo) => {
       /* item checks
-                1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
-                2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
-                3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
-                4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
-                5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
-                5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
-                6. multi-tier perks - heavy lookup - reason:
-                    - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
-            */
+                      1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
+                      2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
+                      3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
+                      4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
+                      5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
+                      5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
+                      6. multi-tier perks - heavy lookup - reason:
+                          - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
+                  */
       /* Unique Perk */
       const fcPerkName = combo[0];
       const scPerkName = combo[1];
-      const fcPerkCount = _junkPerkMaps.armorPerkCount[fcPerkName];
-      const scPerkCount = _junkPerkMaps.armorPerkCount[scPerkName];
+      const fcPerkCount = junkPmByClass.armorPerkCount[fcPerkName];
+      const scPerkCount = junkPmByClass.armorPerkCount[scPerkName];
       /*if (item.id == "6917529086013942993") {
-                console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
-            }*/
+                      console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
+                  }*/
       if (fcPerkCount == 1 || scPerkCount == 1) {
         comboReasons.push('Unique Perk');
         return true;
@@ -255,17 +275,21 @@ function junkPerkFilter(item, dupeReport) {
       const wantedPair = _.indexOf(_junkPerkMaps.wantedPerkPairs, comboString) > -1;
       if (wantedPair) {
         //TODO fix this logic so it doesn't repeat further down
-        const perkPairCount = _junkPerkMaps.perkPairCount[comboString];
+        const perkPairCount = junkPmByClass.perkPairCount[comboString];
         if (isFourPa && (perkPairCount.fourPa >= 2 || perkPairCount.fivePa >= 1)) {
           comboReasons.push(
-            'Duplicate Exp. Pair ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa
+            'Duplicate Exp. Pair (' + perkPairCount.fourPa + '/' + perkPairCount.fivePa + ')'
           );
           return false;
         }
         //if the item is a 5pa then it can only be replaced by another 5pa armor piece
         if (!isFourPa && perkPairCount.fivePa >= 2) {
           comboReasons.push(
-            'Dupe Exp. Pair In Other 5PA ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa
+            'Dupe Exp. Pair In Other 5PA (' +
+              perkPairCount.fourPa +
+              '/' +
+              perkPairCount.fivePa +
+              ')'
           );
           return false;
         }
@@ -289,41 +313,45 @@ function junkPerkFilter(item, dupeReport) {
       }
 
       /* Impossible Pair */
-      const impossiblePair = _.indexOf(_junkPerkMaps.impossiblePerkPairs, comboString) > -1;
+      const impossiblePair = _.indexOf(junkPmByClass.impossiblePerkPairs, comboString) > -1;
       if (impossiblePair) {
         comboReasons.push('Impossible Pair');
         return false;
       }
 
       /* Duplicate Perk */
-      const perkPairCount = _junkPerkMaps.perkPairCount[comboString];
+      const perkPairCount = junkPmByClass.perkPairCount[comboString];
       /*if (item.id == "6917529086278883300") {
-                console.log("perkPairCount", perkPairCount, perkPairCount.fourPa > 2, perkPairCount.fivePa > 2);
-            }*/
+                      console.log("perkPairCount", perkPairCount, perkPairCount.fourPa > 2, perkPairCount.fivePa > 2);
+                  }*/
       // if the item has a replacement 4pa piece it needs another 4pa or 5pa replacement to be considered a dupe
       if (isFourPa && (perkPairCount.fourPa >= 2 || perkPairCount.fivePa >= 1)) {
-        comboReasons.push('Duplicate Pair ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa);
+        comboReasons.push(
+          'Duplicate Pair (' + perkPairCount.fourPa + '/' + perkPairCount.fivePa + ')'
+        );
         return false;
       }
       //if the item is a 5pa then it can only be replaced by another 5pa armor piece
       if (!isFourPa && perkPairCount.fivePa >= 2) {
-        comboReasons.push('Dupe In Other 5PA ' + perkPairCount.fourPa + '/' + perkPairCount.fivePa);
+        comboReasons.push(
+          'Dupe In Other 5PA (' + perkPairCount.fourPa + '/' + perkPairCount.fivePa + ')'
+        );
         return false;
       }
       /*if (comboString == "Unflinching Fusion Rifle Aim,Special Ammo Finder") {
-                console.log("test", perkPairCount)
-            }*/
+                      console.log("test", perkPairCount)
+                  }*/
       /* Enhanced Pair - Enhanced version of the perk pair available */
-      const hasEnhancedPair = _.has(_junkPerkMaps.unwantedPairBcEnhanced, comboString);
+      const hasEnhancedPair = _.has(junkPmByClass.unwantedPairBcEnhanced, comboString);
       if (hasEnhancedPair) {
         comboReasons.push('Enhanced Pair Available');
         return false;
       }
 
       /* Generic ETS Available */
-      const hasGenericReplacement = _.has(_junkPerkMaps.unwantedBcGenericEtsPairs, comboString);
+      const hasGenericReplacement = _.has(junkPmByClass.unwantedBcGenericEtsPairs, comboString);
       if (hasGenericReplacement) {
-        const replacementCombo = _junkPerkMaps.unwantedBcGenericEtsPairs[comboString];
+        const replacementCombo = junkPmByClass.unwantedBcGenericEtsPairs[comboString];
         comboReasons.push('Generic ETS: ' + replacementCombo);
         return false;
       }
@@ -334,8 +362,8 @@ function junkPerkFilter(item, dupeReport) {
     });
 
     /*if (item.id == "6917529086431217491") {
-            console.log("wantedCombos", wantedCombos, comboReasons);
-        }*/
+                console.log("wantedCombos", wantedCombos, comboReasons);
+            }*/
 
     // if the item has no wanted combos then it can safely be dismantled
     if (wantedCombos.length == 0) {
@@ -353,7 +381,7 @@ function junkPerkFilter(item, dupeReport) {
       );
       _.each(armorCombos, (combo, index) => {
         var reason = comboReasons[index];
-        dupeText.push('"' + combo.join('" "') + '" (reason: ' + reason + ')');
+        dupeText.push('"' + combo.join('" "') + '" - ' + reason);
       });
       dupeText.push('');
       dupeReport.push(dupeText.join('\n'));
