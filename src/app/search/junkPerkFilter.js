@@ -135,7 +135,25 @@ function initJunkPerks(stores) {
                   fcPerkNameEquiv = fcPerkNameEquiv + ' Aim';
                 }
                 var equivalentCombo = [fcPerkNameEquiv, combo[1]].join(',');
-                junkPmByClass.unwantedBcGenericEtsPairs[equivalentCombo] = combo;
+                if (!_.has(junkPmByClass.unwantedBcGenericEtsPairs, equivalentCombo)) {
+                  junkPmByClass.unwantedBcGenericEtsPairs[equivalentCombo] = {
+                    fivaPa: 0,
+                    fourPa: 0,
+                    fourPaIDs: [],
+                    fivePaIDs: [],
+                    combo: combo
+                  };
+                }
+                var ids =
+                  junkPmByClass.unwantedBcGenericEtsPairs[equivalentCombo][
+                    isFourPa ? 'fourPaIDs' : 'fivePaIDs'
+                  ];
+                if (ids.indexOf(itemId) == -1) {
+                  junkPmByClass.unwantedBcGenericEtsPairs[equivalentCombo][
+                    isFourPa ? 'fourPa' : 'fivePa'
+                  ]++;
+                  ids.push(itemId);
+                }
               });
               //console.log("combo", combo);
               //unwantedBcGenericFastPairs[keyName] = keyName;
@@ -169,10 +187,10 @@ function initJunkPerks(stores) {
           }
 
           /* Reason: Enhanced Pair
-                      If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
-                      example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
-                      Enhanced Perks only affect the first column of the pair
-                  */
+                                If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
+                                example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
+                                Enhanced Perks only affect the first column of the pair
+                            */
           var isEnhancedCombo = combo[0].indexOf('Enhanced') > -1;
           if (isEnhancedCombo) {
             var normalCombo = _.clone(combo);
@@ -249,23 +267,23 @@ function junkPerkFilter(item, dupeReport) {
 
     const wantedCombos = _.filter(armorCombos, (combo) => {
       /* item checks
-                1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
-                2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
-                3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
-                4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
-                5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
-                5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
-                6. multi-tier perks - heavy lookup - reason:
-                    - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
-            */
+                      1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
+                      2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
+                      3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
+                      4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
+                      5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
+                      5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
+                      6. multi-tier perks - heavy lookup - reason:
+                          - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
+                  */
       /* Unique Perk */
       const fcPerkName = combo[0];
       const scPerkName = combo[1];
       const fcPerkCount = junkPmByClass.armorPerkCount[fcPerkName];
       const scPerkCount = junkPmByClass.armorPerkCount[scPerkName];
       /*if (item.id == "6917529086013942993") {
-                console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
-            }*/
+                      console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
+                  }*/
       if (fcPerkCount == 1 || scPerkCount == 1) {
         comboReasons.push('Unique Perk');
         return true;
@@ -331,16 +349,27 @@ function junkPerkFilter(item, dupeReport) {
       //TODO: Check if 5PA item to ensure ETS is available in other 5PA only
       const hasGenericReplacement = _.has(junkPmByClass.unwantedBcGenericEtsPairs, comboString);
       if (hasGenericReplacement) {
-        const replacementCombo = junkPmByClass.unwantedBcGenericEtsPairs[comboString];
-        comboReasons.push('Generic ETS: ' + replacementCombo);
-        return false;
+        const replacementGenericEtsInfo = junkPmByClass.unwantedBcGenericEtsPairs[comboString];
+        const rplcInfoComboCount =
+          ' - ' +
+          replacementGenericEtsInfo.combo +
+          '(' +
+          replacementGenericEtsInfo.fourPa +
+          '/' +
+          replacementGenericEtsInfo.fivePa +
+          ')';
+        if (isFourPa) {
+          comboReasons.push('Generic ETS' + rplcInfoComboCount);
+          return false;
+        } else if (!isFourPa && replacementGenericEtsInfo.fivePa >= 2) {
+          comboReasons.push('Generic ETS w 5PA ' + rplcInfoComboCount);
+          return false;
+        }
       }
 
       /* Duplicate Perk */
       const perkPairCount = junkPmByClass.perkPairCount[comboString];
-      /*if (item.id == "6917529086278883300") {
-                console.log("perkPairCount", perkPairCount, perkPairCount.fourPa > 2, perkPairCount.fivePa > 2);
-            }*/
+
       // if the item has a replacement 4pa piece it needs another 4pa or 5pa replacement to be considered a dupe
       if (isFourPa && (perkPairCount.fourPa >= 2 || perkPairCount.fivePa >= 1)) {
         comboReasons.push(
@@ -362,8 +391,8 @@ function junkPerkFilter(item, dupeReport) {
     });
 
     /*if (item.id == "6917529086431217491") {
-            console.log("wantedCombos", wantedCombos, comboReasons);
-        }*/
+                console.log("wantedCombos", wantedCombos, comboReasons);
+            }*/
 
     // if the item has no wanted combos then it can safely be dismantled
     if (wantedCombos.length == 0) {
