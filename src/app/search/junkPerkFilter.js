@@ -137,7 +137,7 @@ function initJunkPerks(stores) {
                 var equivalentCombo = [fcPerkNameEquiv, combo[1]].join(',');
                 if (!_.has(junkPmByClass.unwantedBcGenericEtsPairs, equivalentCombo)) {
                   junkPmByClass.unwantedBcGenericEtsPairs[equivalentCombo] = {
-                    fivaPa: 0,
+                    fivePa: 0,
                     fourPa: 0,
                     fourPaIDs: [],
                     fivePaIDs: [],
@@ -187,10 +187,10 @@ function initJunkPerks(stores) {
           }
 
           /* Reason: Enhanced Pair
-                                If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
-                                example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
-                                Enhanced Perks only affect the first column of the pair
-                            */
+                                          If you have Enhanced {{Perk1}} and {{Perk2}} then you don't need anything with {{Perk1}} {{Perk2}} pair ever
+                                          example: Enhanced HC Loader + Special Ammo Finder replaces all HC Loader + Special Ammo Finder combos
+                                          Enhanced Perks only affect the first column of the pair
+                                      */
           var isEnhancedCombo = combo[0].indexOf('Enhanced') > -1;
           if (isEnhancedCombo) {
             var normalCombo = _.clone(combo);
@@ -267,23 +267,23 @@ function junkPerkFilter(item, dupeReport) {
 
     const wantedCombos = _.filter(armorCombos, (combo) => {
       /* item checks
-                      1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
-                      2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
-                      3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
-                      4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
-                      5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
-                      5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
-                      6. multi-tier perks - heavy lookup - reason:
-                          - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
-                  */
+                            1. individual perks count -  quick lookup - reason: Having a unique wanted perk is alright even if it's with a bad pair rather than losing it
+                            2. preset unwanted perks - quick lookup - reason: Unwanted perk makes the entire pair unwanted
+                            3. preset unwanted pairs - quick lookup - reason: Unwanted Pair are preconfigured by the user
+                            4. preset impossible heavy pairs - quick lookup - reason: Impossible Pair are first column heady second column mismatched heavy
+                            5. perk-pairs count - quick lookup - reason: Other 5PA with the same pair available
+                            5. enhanced-pairs - quick lookup - reason: Other armor with the enhanced version of the perk pair is available
+                            6. multi-tier perks - heavy lookup - reason:
+                                - if you have Light Arms Loader then you don't need HC Loader bc it's just as good
+                        */
       /* Unique Perk */
       const fcPerkName = combo[0];
       const scPerkName = combo[1];
       const fcPerkCount = junkPmByClass.armorPerkCount[fcPerkName];
       const scPerkCount = junkPmByClass.armorPerkCount[scPerkName];
       /*if (item.id == "6917529086013942993") {
-                      console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
-                  }*/
+                            console.log("fcPerkCount", fcPerkCount, fcPerkName,  "scPerkCount", scPerkCount, scPerkName);
+                        }*/
       if (fcPerkCount == 1 || scPerkCount == 1) {
         comboReasons.push('Unique Perk');
         return true;
@@ -391,8 +391,8 @@ function junkPerkFilter(item, dupeReport) {
     });
 
     /*if (item.id == "6917529086431217491") {
-                console.log("wantedCombos", wantedCombos, comboReasons);
-            }*/
+                    console.log("wantedCombos", wantedCombos, comboReasons);
+                }*/
 
     // if the item has no wanted combos then it can safely be dismantled
     if (wantedCombos.length == 0) {
