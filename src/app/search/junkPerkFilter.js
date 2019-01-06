@@ -23,7 +23,7 @@ function initJunkPerks(stores) {
             if (
               item.bucket.sort == 'Armor' &&
               item.tier === 'Legendary' &&
-              (junkPerkPresets.skipTags.indexOf(item.tag) == -1 ||
+              (junkPerkPresets.skipTags.indexOf(item.dimInfo.tag) == -1 ||
                 junkPerkPresets.skipTags.length == 0)
             ) {
               memo.push(item);
