@@ -910,15 +910,18 @@ function searchFilters(
       junkperk(item: DimItem) {
         const doShow = junkPerkFilter(item, dupeReport);
 
-        item.junkReport = _.map(_.sortBy(dupeReport), (junkItem) => {
-          return (
+        if (doShow) {
+          const junkItem = dupeReport[dupeReport.length - 1];
+
+          item.junkReport =
             compiledJunkItemTemplate(junkItem) +
             '\n' +
             _.map(junkItem.reasons, (junkItemReason) => {
               return compiledJunkReasonTemplate(junkItemReason) + '\n';
-            }).join('')
-          );
-        }).join('\n');
+            }).join('');
+        } else {
+          item.junkReport = 'Wanted Item';
+        }
 
         /*if (item.id === "6917529085495455164") {
           console.log("doShow", doShow, dupeReport, item);
