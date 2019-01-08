@@ -18,7 +18,7 @@ import store from '../store/store';
 import { loadoutsSelector } from '../loadout/reducer';
 import { InventoryCuratedRoll } from '../curated-rolls/curatedRollService';
 import { curationsSelector } from '../curated-rolls/reducer';
-import { initJunkPerks, junkPerkFilter } from './junkPerkFilter.js';
+import { initJunkPerks, junkPerkFilter, junkPerkConfig } from './junkPerkFilter.js';
 
 export const searchConfigSelector = createSelector(
   destinyVersionSelector,
@@ -421,6 +421,9 @@ function searchFilters(
       });
     }
   }
+
+  const compiledJunkItemTemplate = _.template(junkPerkConfig.junkItemTemplate);
+  const compiledJunkReasonTemplate = _.template(junkPerkConfig.junkReasonTemplate);
 
   const statHashes = new Set([
     1480404414, // D2 Attack
@@ -906,7 +909,16 @@ function searchFilters(
       },
       junkperk(item: DimItem) {
         const doShow = junkPerkFilter(item, dupeReport);
-        item.junkReport = dupeReport[dupeReport.length - 1];
+
+        item.junkReport = _.map(_.sortBy(dupeReport), (junkItem) => {
+          return (
+            compiledJunkItemTemplate(junkItem) +
+            '\n' +
+            _.map(junkItem.reasons, (junkItemReason) => {
+              return compiledJunkReasonTemplate(junkItemReason) + '\n';
+            }).join('')
+          );
+        }).join('\n');
 
         /*if (item.id === "6917529085495455164") {
           console.log("doShow", doShow, dupeReport, item);
