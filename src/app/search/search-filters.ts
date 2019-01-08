@@ -910,7 +910,7 @@ function searchFilters(
       junkperk(item: DimItem) {
         const doShow = junkPerkFilter(item, dupeReport);
 
-        item.junkReport = _.map(_.sortBy(dupeReport), (junkItem) => {
+        item.junkReport = _.map(_.sortBy(dupeReport), (junkItem: any) => {
           return (
             compiledJunkItemTemplate(junkItem) +
             '\n' +
