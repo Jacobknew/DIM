@@ -911,7 +911,7 @@ function searchFilters(
         const doShow = junkPerkFilter(item, dupeReport);
 
         if (doShow) {
-          const junkItem = dupeReport[dupeReport.length - 1];
+          const junkItem: any = dupeReport[dupeReport.length - 1];
 
           item.junkReport =
             compiledJunkItemTemplate(junkItem) +
