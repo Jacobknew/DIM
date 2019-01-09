@@ -72,7 +72,7 @@ module.exports = {
       'Trace Rifle',
       'Bow',
       'Linear Fusion Rifle',
-      'Sniper'
+      'Sniper Rifle'
       //'Shotgun' applies to Slug Shotguns but that's only the Chaperone so Shotgun Targeting is still needed
     ]
   },
