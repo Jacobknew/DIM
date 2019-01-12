@@ -26,6 +26,21 @@ function initJunkPerks(stores) {
               (junkPerkPresets.skipTags.indexOf(item.dimInfo.tag) == -1 ||
                 junkPerkPresets.skipTags.length == 0)
             ) {
+              const armorType = item.sockets.sockets
+                .filter((socket) => {
+                  return (
+                    socket.plugOptions.filter((options) => {
+                      return options.plugItem.itemTypeDisplayName == 'Intrinsic';
+                    }).length > 0
+                  );
+                })
+                .map((socket) => {
+                  return socket.plugOptions.map((options) => {
+                    return options.plugItem.displayProperties.description;
+                  })[0];
+                })[0];
+
+              item.armorType = armorType;
               memo.push(item);
             }
           });
@@ -265,6 +280,7 @@ function junkPerkFilter(item, dupeReport) {
       dupeReport.push({
         classText: item.classTypeName,
         type: item.bucket.type,
+        armorType: item.armorType,
         name: item.name,
         power: item.basePower,
         id: item.id,
@@ -422,6 +438,7 @@ function junkPerkFilter(item, dupeReport) {
       dupeReport.push({
         classText: item.classTypeName,
         type: item.bucket.type,
+        armorType: item.armorType,
         name: item.name,
         power: item.basePower,
         id: item.id,
