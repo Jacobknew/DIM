@@ -32,9 +32,15 @@ module.exports = {
     'Unflinching Power Aim',
     'Power Dexterity',
     //I don't want every combination that exists for Light Reactor (super energy from fusion rifle kills)
-    'Light Reactor'
+    'Light Reactor',
+    'Remote Connnection'
   ],
-  wantedPerkPairs: [['Light Reactor', 'Fusion Rifle Reserves']],
+  wantedPerkPairs: [
+    ['Light Reactor', 'Fusion Rifle Reserves'],
+    ['Light Reactor', 'Special Ammo Finder'],
+    ['Remote Connection', 'Sniper Rifle Reserves'],
+    ['Remote Connection', 'Special Ammo Finder']
+  ],
   //unwanted combos (first column + second column)
   unwantedPerkPairs: [['Power Weapon Loader', 'Sword Scavenger']],
   // RL/LF/Sword Perk + non-matching RL/LF/Sword Perk
