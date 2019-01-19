@@ -140,7 +140,9 @@ function initJunkPerks(stores) {
           let fcPerkName = combo[0];
           //console.log("armorType", armorType);
           //manipulate the string in this way so I can check for the beginning of the string and avoid catch {{Other}} Rifle parks
-          if (armorType == 'Chest Armor') {
+          //TODO: Normalize type in dimStorageShim to use == instead of indexOf
+          const isChest = armorType.indexOf('Chest') > -1;
+          if (isChest) {
             fcPerkName = fcPerkName.replace('Unflinching ', '');
           }
           _.each(_junkPerkMaps.genericEtsPerkNames, function(genericEtsPerkName) {
@@ -151,7 +153,7 @@ function initJunkPerks(stores) {
               _.each(affectedWeapons, function(weaponName) {
                 //return an array of perks that aren't needed bc the equivalent is found
                 var fcPerkNameEquiv = combo[0].replace(genericEtsPerkName, weaponName);
-                if (armorType == 'Chest Armor' && genericEtsPerkName == 'Large Arms') {
+                if (isChest && genericEtsPerkName == 'Large Arms') {
                   fcPerkNameEquiv = fcPerkNameEquiv + ' Aim';
                 }
                 var equivalentCombo = [fcPerkNameEquiv, combo[1]].join(',');
@@ -377,8 +379,11 @@ function junkPerkFilter(item, dupeReport) {
       }
 
       /* Generic ETS Available */
-      //TODO: Check if 5PA item to ensure ETS is available in other 5PA only
       const hasGenericReplacement = _.has(junkPmByClass.unwantedBcGenericEtsPairs, comboString);
+      /*if (item.id == "6917529086384902245" && comboString.indexOf("Hand Cannon") > -1) {
+        console.log("hasGenericReplacement", hasGenericReplacement, comboString, junkPmByClass.unwantedBcGenericEtsPairs);
+      }*/
+
       if (hasGenericReplacement) {
         const replacementGenericEtsInfo = junkPmByClass.unwantedBcGenericEtsPairs[comboString];
         const rplcInfoComboCount =
