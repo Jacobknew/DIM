@@ -19,7 +19,7 @@ module.exports = {
     'Scout Rifle Reserves',
     'Sidearm Reserves',
     'Submachine Gun Reserves',
-    //I rarely do melee so remove those perks
+    //I rarely do melee so remove those perks with every other perk
     'Impact Induction',
     'Invigoration',
     'Hands-On',
@@ -42,7 +42,21 @@ module.exports = {
     ['Light Reactor', 'Fusion Rifle Reserves'],
     ['Light Reactor', 'Special Ammo Finder'],
     ['Remote Connection', 'Sniper Rifle Reserves'],
-    ['Remote Connection', 'Special Ammo Finder']
+    ['Remote Connection', 'Special Ammo Finder'],
+
+    ['Impact Induction', 'Special Ammo Finder'],
+    ['Invigoration', 'Special Ammo Finder'],
+    ['Hands-On', 'Special Ammo Finder'],
+    ['Impact Induction', 'Heavy Ammo Finder'],
+    ['Invigoration', 'Heavy Ammo Finder'],
+    ['Hands-On', 'Heavy Ammo Finder'],
+    ['Impact Induction', 'Heavy Ammo Finder'],
+
+    //keep scavenger and sidearm perks if it has a matching aim/dexterity perk
+    ['Unflinching Light Arms Aim', 'Submachine Gun Reserves'],
+    ['Unflinching Light Arms Aim', 'Sidearm Reserves'],
+    ['Light Arms Dexterity', 'Submachine Gun Scavenger'],
+    ['Light Arms Dexterity', 'Sidearm Scavenger']
   ],
   //unwanted combos (first column + second column)
   unwantedPerkPairs: [['Power Weapon Loader', 'Sword Scavenger']],
