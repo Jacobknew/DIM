@@ -54,9 +54,16 @@ module.exports = {
 
     //keep scavenger and sidearm perks if it has a matching aim/dexterity perk
     ['Unflinching Light Arms Aim', 'Submachine Gun Reserves'],
+    ['Unflinching Submachine Gun Aim', 'Submachine Gun Reserves'],
+
     ['Unflinching Light Arms Aim', 'Sidearm Reserves'],
+    ['Unflinching Sidearm Aim', 'Sidearm Reserves'],
+
     ['Light Arms Dexterity', 'Submachine Gun Scavenger'],
-    ['Light Arms Dexterity', 'Sidearm Scavenger']
+    ['Submachine Gun Dexterity', 'Submachine Gun Scavenger'],
+
+    ['Light Arms Dexterity', 'Sidearm Scavenger'],
+    ['Sidearm Dexterity', 'Sidearm Scavenger']
   ],
   //unwanted combos (first column + second column)
   unwantedPerkPairs: [['Power Weapon Loader', 'Sword Scavenger']],
