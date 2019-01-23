@@ -13,9 +13,12 @@ module.exports = {
     'Auto Rifle Scavenger',
     'Pulse Rifle Scavenger',
     'Scout Rifle Scavenger',
+    'Sidearm Scavenger',
     'Auto Rifle Reserves',
     'Pulse Rifle Reserves',
     'Scout Rifle Reserves',
+    'Sidearm Reserves',
+    'Submachine Gun Reserves',
     //I rarely do melee so remove those perks
     'Impact Induction',
     'Invigoration',
