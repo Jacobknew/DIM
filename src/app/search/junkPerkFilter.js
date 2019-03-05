@@ -96,10 +96,14 @@ function initJunkPerks(stores) {
             return options.plugItem.displayProperties.name;
           });
         });
-
+      //take out new hasRandomizedPlugItems for mobility/resilience/recovery armor
+      if (armorPerks.length == 3) {
+        armorPerks.shift();
+      }
       let armorCombos = [];
       let flatPerks = [];
       if (armorPerks.length) {
+        //console.log("armorPerks", item, item.sockets.sockets, armorPerks);
         armorPerks[0].forEach((firstColumn) => {
           flatPerks.push(firstColumn);
           armorPerks[1].forEach((secondColumn) => {
@@ -287,7 +291,8 @@ function junkPerkFilter(item, dupeReport) {
         power: item.basePower,
         id: item.id,
         reason: 'Reason: No Armor Combos Available',
-        reasons: []
+        reasons: [],
+        hasConflict: false
       });
       //console.log();
       return true;
@@ -295,6 +300,7 @@ function junkPerkFilter(item, dupeReport) {
 
     //filter combos to the combos that are wanted
     const comboReasons = [];
+    const comboConflicts = [];
 
     var isFourPa = armorCombos.length == 4;
 
@@ -319,6 +325,7 @@ function junkPerkFilter(item, dupeReport) {
             }*/
       if (fcPerkCount == 1 || scPerkCount == 1) {
         comboReasons.push('Unique Perk');
+        comboConflicts.push(true);
         return true;
       }
 
@@ -332,6 +339,7 @@ function junkPerkFilter(item, dupeReport) {
           comboReasons.push(
             'Duplicate Exp. Pair (' + perkPairCount.fourPa + '/' + perkPairCount.fivePa + ')'
           );
+          comboConflicts.push(perkPairCount.fivePa == 0);
           return false;
         }
         //if the item is a 5pa then it can only be replaced by another 5pa armor piece
@@ -343,10 +351,13 @@ function junkPerkFilter(item, dupeReport) {
               perkPairCount.fivePa +
               ')'
           );
+          comboConflicts.push(perkPairCount.fivePa == 2);
           return false;
         }
         //if the particular pair is wanted and it's not an existing dupe in other armor then return true to keep this unique perk pair
         comboReasons.push('Explicit Wanted Perk Pair');
+        //TODO: I think this needs a logic statement to be true or false
+        comboConflicts.push(true);
         return true;
       }
 
@@ -354,6 +365,7 @@ function junkPerkFilter(item, dupeReport) {
       const unwantedPerk = _.intersection(junkPerkPresets.unwantedPerks, combo).length > 0;
       if (unwantedPerk) {
         comboReasons.push('Unwanted Perk');
+        comboConflicts.push(false);
         return false;
       }
 
@@ -361,6 +373,7 @@ function junkPerkFilter(item, dupeReport) {
       const unwantedPair = _.indexOf(_junkPerkMaps.unwantedPerkPairs, comboString) > -1;
       if (unwantedPair) {
         comboReasons.push('Unwanted Perk Pair');
+        comboConflicts.push(false);
         return false;
       }
 
@@ -368,6 +381,7 @@ function junkPerkFilter(item, dupeReport) {
       const impossiblePair = _.indexOf(junkPmByClass.impossiblePerkPairs, comboString) > -1;
       if (impossiblePair) {
         comboReasons.push('Impossible Pair');
+        comboConflicts.push(false);
         return false;
       }
 
@@ -375,6 +389,7 @@ function junkPerkFilter(item, dupeReport) {
       const hasEnhancedPair = _.has(junkPmByClass.unwantedPairBcEnhanced, comboString);
       if (hasEnhancedPair) {
         comboReasons.push('Enhanced Pair Available');
+        comboConflicts.push(false);
         return false;
       }
 
@@ -396,9 +411,11 @@ function junkPerkFilter(item, dupeReport) {
           ')';
         if (isFourPa) {
           comboReasons.push('Generic ETS' + rplcInfoComboCount);
+          comboConflicts.push(false);
           return false;
         } else if (!isFourPa && replacementGenericEtsInfo.fivePa >= 2) {
           comboReasons.push('Generic ETS w 5PA ' + rplcInfoComboCount);
+          comboConflicts.push(replacementGenericEtsInfo.fivePa > 2);
           return false;
         }
       }
@@ -411,6 +428,7 @@ function junkPerkFilter(item, dupeReport) {
         comboReasons.push(
           'Duplicate Pair (' + perkPairCount.fourPa + '/' + perkPairCount.fivePa + ')'
         );
+        comboConflicts.push(perkPairCount.fourPa == 2 && perkPairCount.fivePa == 0);
         return false;
       }
       //if the item is a 5pa then it can only be replaced by another 5pa armor piece
@@ -418,10 +436,12 @@ function junkPerkFilter(item, dupeReport) {
         comboReasons.push(
           'Dupe In Other 5PA (' + perkPairCount.fourPa + '/' + perkPairCount.fivePa + ')'
         );
+        comboConflicts.push(perkPairCount.fivePa == 2);
         return false;
       }
 
       //if it passes all these conditions then the perk-pair is wanted
+      comboConflicts.push(true);
       comboReasons.push('Wanted Perk Pair');
       return true;
     });
@@ -435,15 +455,19 @@ function junkPerkFilter(item, dupeReport) {
       const lines = [];
       _.each(armorCombos, (combo, index) => {
         var reason = comboReasons[index];
+        var conflicts = comboConflicts[index];
         lines.push({
           combo: combo,
-          reason: reason
+          reason: reason,
+          conflicts: conflicts
         });
       });
+      const hasConflict = _.filter(lines, { conflicts: true }).length > 0;
       dupeReport.push({
         classText: item.classTypeName,
         type: item.bucket.type,
         armorType: item.armorType,
+        hasConflict: hasConflict,
         name: item.name,
         power: item.basePower,
         id: item.id,

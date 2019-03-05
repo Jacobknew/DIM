@@ -1,6 +1,6 @@
 module.exports = {
-  junkItemTemplate: 'Type: <%= armorType %> / <%= reason %>',
-  junkReasonTemplate: '<%= combo[0] %> / <%= combo[1] %> - <%= reason %>',
+  junkItemTemplate: '<%= reason %> / Conflicts: <%= hasConflict %>',
+  junkReasonTemplate: '<%= combo[0] %> / <%= combo[1] %> - <%= reason %> <%= conflicts %>',
   //items that should not be included as part of the analysis
   skipTags: ['junk'],
   //items that should not be shown as having junk perks
